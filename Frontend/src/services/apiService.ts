@@ -11,6 +11,7 @@ class ApiService {
     return headers;
   }
 
+  // ==================== AUTH ====================
   static async register(userData: {
     email: string;
     password: string;
@@ -47,6 +48,7 @@ class ApiService {
     return response.data;
   }
 
+  // ==================== PROJECTS ====================
   static async getAllProjects(params?: {
     limit?: number;
     offset?: number;
@@ -116,6 +118,7 @@ class ApiService {
     return response.data;
   }
 
+  // ==================== PROFILES ====================
   static async getAllProfiles(params?: {
     limit?: number;
     offset?: number;
@@ -168,6 +171,93 @@ class ApiService {
     }
   ) {
     const response = await HttpService.put("/profiles/update", profileData, {
+      headers: this.getHeaders(token),
+    });
+    return response.data;
+  }
+
+  // ==================== USERS (ADMIN) ====================
+  
+  /**
+   * Obtener todos los usuarios (solo admin)
+   */
+  static async getAllUsers(token: string, params?: {
+    limit?: number;
+    offset?: number;
+    search?: string;
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params?.limit) queryParams.append("limit", params.limit.toString());
+    if (params?.offset) queryParams.append("offset", params.offset.toString());
+    if (params?.search) queryParams.append("search", params.search);
+
+    const endpoint = `/users${
+      queryParams.toString() ? `?${queryParams.toString()}` : ""
+    }`;
+    const response = await HttpService.get(endpoint, {
+      headers: this.getHeaders(token),
+    });
+    return response.data;
+  }
+
+  /**
+   * Obtener un usuario específico por ID (admin puede ver cualquiera)
+   */
+  static async getUserById(userId: string, token: string) {
+    const response = await HttpService.get(`/users/${userId}`, {
+      headers: this.getHeaders(token),
+    });
+    return response.data;
+  }
+
+  /**
+   * Actualizar el rol de un usuario (solo admin)
+   */
+  static async updateUserRole(
+    userId: string,
+    role: 'user' | 'admin',
+    token: string
+  ) {
+    const response = await HttpService.put(
+      `/users/${userId}/role`,
+      { role },
+      {
+        headers: this.getHeaders(token),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Actualizar perfil de otro usuario (solo admin)
+   */
+  static async updateUserProfile(
+    userId: string,
+    profileData: {
+      full_name?: string;
+      username?: string;
+      bio?: string;
+      avatar_url?: string;
+      website?: string;
+      role?: 'user' | 'admin';
+    },
+    token: string
+  ) {
+    const response = await HttpService.put(
+      `/users/${userId}`,
+      profileData,
+      {
+        headers: this.getHeaders(token),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Eliminar usuario (solo admin)
+   */
+  static async deleteUser(userId: string, token: string) {
+    const response = await HttpService.delete(`/users/${userId}`, {
       headers: this.getHeaders(token),
     });
     return response.data;

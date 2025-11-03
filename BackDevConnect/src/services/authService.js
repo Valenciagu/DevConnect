@@ -67,9 +67,10 @@ class AuthService {
                 throw new Error('Credenciales inválidas');
             }
 
+            // 🆕 Obtener perfil completo con role
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('*')
+                .select('id, full_name, username, avatar_url, bio, website, role, created_at, updated_at')
                 .eq('id', authData.user.id)
                 .single();
 
@@ -78,7 +79,14 @@ class AuthService {
                 user: {
                     id: authData.user.id,
                     email: authData.user.email,
-                    profile: profile || null
+                    full_name: profile?.full_name,
+                    username: profile?.username,
+                    avatar_url: profile?.avatar_url,
+                    bio: profile?.bio,
+                    website: profile?.website,
+                    role: profile?.role || 'user', // 🆕 Incluir role
+                    created_at: profile?.created_at,
+                    updated_at: profile?.updated_at
                 },
                 session: {
                     access_token: authData.session?.access_token,
@@ -116,6 +124,7 @@ class AuthService {
         }
     }
 
+    // 🆕 ACTUALIZADO: Incluir role y todos los campos del perfil
     static async getCurrentUser(token) {
         try {
             if (!token) {
@@ -128,18 +137,39 @@ class AuthService {
                 throw new Error('Token inválido');
             }
 
-            const { data: profile } = await supabase
+            // Obtener perfil completo con role
+            const { data: profile, error: profileError } = await supabase
                 .from('profiles')
-                .select('*')
+                .select('id, full_name, username, avatar_url, bio, website, role, created_at, updated_at')
                 .eq('id', user.id)
                 .single();
+
+            if (profileError) {
+                console.error('Error al obtener perfil:', profileError);
+                // Si no hay perfil, devolver datos básicos
+                return {
+                    success: true,
+                    user: {
+                        id: user.id,
+                        email: user.email,
+                        role: 'user'
+                    }
+                };
+            }
 
             return {
                 success: true,
                 user: {
-                    id: user.id,
+                    id: profile.id,
                     email: user.email,
-                    profile: profile || null
+                    full_name: profile.full_name,
+                    username: profile.username,
+                    avatar_url: profile.avatar_url,
+                    bio: profile.bio,
+                    website: profile.website,
+                    role: profile.role || 'user', // 🆕 Incluir role
+                    created_at: profile.created_at,
+                    updated_at: profile.updated_at
                 }
             };
 
@@ -202,11 +232,19 @@ class AuthService {
                 };
             }
 
+            // Obtener role del perfil
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single();
+
             return {
                 success: true,
                 user: {
                     id: user.id,
                     email: user.email,
+                    role: profile?.role || 'user',
                     ...user.user_metadata
                 }
             };

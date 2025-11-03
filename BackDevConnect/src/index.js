@@ -7,6 +7,7 @@ const authRoutes = require('./routes/auth');
 const projectRoutes = require('./routes/projects');
 const profileRoutes = require('./routes/profiles');
 const commentRoutes = require('./routes/comments');
+const userRoutes = require('./routes/users'); // 🆕 NUEVO
 const swaggerSpecs = require('./config/swagger');
 const { errorHandler, notFoundHandler } = require('./utils/errors');
 const logger = require('./middleware/logger');
@@ -36,6 +37,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/profiles', profileRoutes);
 app.use('/api/comments', commentRoutes);
+app.use('/api/users', userRoutes); // 🆕 NUEVO: Rutas de gestión de usuarios (admin)
 
 // Error handling
 app.use('*', notFoundHandler);
@@ -45,5 +47,5 @@ app.use(errorHandler);
 app.listen(PORT, () => {
     console.log(`🚀 BackDevConnect running on port ${PORT}`);
     console.log(`📡 API: http://localhost:${PORT}`);
-    console.log(`🔍 Docs: http://localhost:${PORT}/api-docs`);
+    console.log(`📚 Docs: http://localhost:${PORT}/api-docs`);
 });

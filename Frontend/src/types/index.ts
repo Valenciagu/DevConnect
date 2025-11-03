@@ -5,6 +5,27 @@ export interface User {
   username?: string;
   full_name?: string;
   avatar_url?: string;
+  role: 'user' | 'admin'; // ✅ NUEVO: Campo de rol
+  bio?: string; // ✅ NUEVO: Para el perfil
+  website?: string; // ✅ NUEVO: Para el perfil
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Session {
+  access_token: string;
+  refresh_token?: string;
+  user: User;
+}
+
+export interface Profile {
+  id: string;
+  full_name?: string;
+  username?: string;
+  avatar_url?: string;
+  bio?: string;
+  website?: string;
+  role: 'user' | 'admin';
   created_at: string;
   updated_at: string;
 }

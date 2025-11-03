@@ -3,9 +3,11 @@ import { useAuth } from "./contexts/AuthContext";
 import { HomePage } from "./pages/HomePage";
 import { AuthPage } from "./pages/AuthPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { ProfilePage } from "./pages/ProfilePage";
+import { EditProfile } from "./pages/EditProfile";
+import { AdminUserEdit } from "./pages/AdminUserEdit";
 import { ErrorBoundary } from "./UI/ErrorBoundary";
 import { LoadingSpinner } from "./UI/LoadingSpinner";
-import { EditProfile } from "./pages/EditProfile";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -19,6 +21,28 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   return user ? <>{children}</> : <Navigate to="/auth" replace />;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (user.role !== "admin") {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -60,13 +84,33 @@ export function AppRouter() {
             }
           />
 
-          {/* 👤 NUEVA RUTA DE PERFIL (protegida) */}
+          {/* 👤 Ruta de visualización de perfil */}
           <Route
             path="/profile"
             element={
               <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* ✏️ Ruta de edición de perfil */}
+          <Route
+            path="/edit-profile"
+            element={
+              <ProtectedRoute>
                 <EditProfile />
               </ProtectedRoute>
+            }
+          />
+
+          {/* 🔐 Rutas de administrador */}
+          <Route
+            path="/admin/user/:userId"
+            element={
+              <AdminRoute>
+                <AdminUserEdit />
+              </AdminRoute>
             }
           />
 

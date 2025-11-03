@@ -29,10 +29,18 @@ const authenticateToken = async (req, res, next) => {
             });
         }
 
+        // 🆕 Obtener el perfil completo con el role
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, full_name, username, avatar_url, role')
+            .eq('id', user.id)
+            .single();
+
         // Agregar información del usuario a la request
         req.user = {
             id: user.id,
             email: user.email,
+            role: profile?.role || 'user', // 🆕 Incluir el role
             ...user.user_metadata
         };
 
@@ -59,9 +67,17 @@ const optionalAuth = async (req, res, next) => {
             const { data: { user }, error } = await supabase.auth.getUser(token);
             
             if (!error && user) {
+                // Obtener el perfil con role
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single();
+
                 req.user = {
                     id: user.id,
                     email: user.email,
+                    role: profile?.role || 'user',
                     ...user.user_metadata
                 };
             }
@@ -72,6 +88,33 @@ const optionalAuth = async (req, res, next) => {
         console.error('Error en middleware opcional de autenticación:', error);
         next();
     }
+};
+
+/**
+ * Middleware para verificar roles de usuario
+ * @param {string[]} allowedRoles - Roles permitidos
+ */
+const requireRole = (allowedRoles) => {
+    return (req, res, next) => {
+        try {
+            const userRole = req.user?.role || 'user';
+
+            if (!allowedRoles.includes(userRole)) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'No tienes permisos suficientes para realizar esta acción'
+                });
+            }
+
+            next();
+        } catch (error) {
+            console.error('Error en middleware de roles:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Error interno del servidor'
+            });
+        }
+    };
 };
 
 /**
@@ -89,6 +132,11 @@ const requireOwnership = (resourceType) => {
                     success: false,
                     error: 'Usuario no autenticado'
                 });
+            }
+
+            // Si es admin, permitir acceso
+            if (req.user.role === 'admin') {
+                return next();
             }
 
             // Verificar propiedad del recurso
@@ -147,90 +195,9 @@ const requireOwnership = (resourceType) => {
     };
 };
 
-/**
- * Middleware para verificar roles de usuario
- * @param {string[]} allowedRoles - Roles permitidos
- */
-const requireRole = (allowedRoles) => {
-    return (req, res, next) => {
-        try {
-            const userRole = req.user?.role || 'user';
-
-            if (!allowedRoles.includes(userRole)) {
-                return res.status(403).json({
-                    success: false,
-                    error: 'No tienes permisos suficientes para realizar esta acción'
-                });
-            }
-
-            next();
-        } catch (error) {
-            console.error('Error en middleware de roles:', error);
-            res.status(500).json({
-                success: false,
-                error: 'Error interno del servidor'
-            });
-        }
-    };
-};
-
-/**
- * Middleware para validar datos de entrada
- * @param {Object} schema - Esquema de validación
- */
-const validateInput = (schema) => {
-    return (req, res, next) => {
-        try {
-            const { error } = schema.validate(req.body);
-            
-            if (error) {
-                return res.status(400).json({
-                    success: false,
-                    error: error.details[0].message
-                });
-            }
-
-            next();
-        } catch (error) {
-            console.error('Error en middleware de validación:', error);
-            res.status(500).json({
-                success: false,
-                error: 'Error interno del servidor'
-            });
-        }
-    };
-};
-
-/**
- * Middleware para manejar errores de CORS
- */
-const corsOptions = {
-    origin: function (origin, callback) {
-        // Permitir requests sin origin (como mobile apps)
-        if (!origin) return callback(null, true);
-        
-        const allowedOrigins = [
-            'http://localhost:3000',
-            'http://localhost:5173',
-            'http://localhost:4173',
-            'https://yourdomain.com'
-        ];
-        
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            callback(new Error('No permitido por CORS'));
-        }
-    },
-    credentials: true,
-    optionsSuccessStatus: 200
-};
-
 module.exports = {
     authenticateToken,
     optionalAuth,
     requireOwnership,
-    requireRole,
-    validateInput,
-    corsOptions
+    requireRole
 };
